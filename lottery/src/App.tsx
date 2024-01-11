@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
+import Spinner from './components/Spinner';
 
 declare global {
   interface Window {
@@ -22,6 +22,7 @@ function App() {
   const [gameData, setGameData] = useState<any>({});
   const [players, setPlayers] = useState<{ [address: string]: Player }>({});
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const abi = [{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[],"name":"GameCreated","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"winner","type":"address"},{"indexed":false,"internalType":"uint256","name":"amountWon","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"adminAmount","type":"uint256"}],"name":"GameEnded","type":"event"},{"anonymous":false,"inputs":[],"name":"GameStarted","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"player","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"NewPlayer","type":"event"},{"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"createGame","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"endGame","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"gameCreated","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"gameEnded","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"gameStarted","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"playerAddresses","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"players","outputs":[{"internalType":"bool","name":"registered","type":"bool"},{"internalType":"uint256","name":"amountPaid","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"registerForGame","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"startGame","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"totalAmountPaid","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalPlayers","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}]
   const contractAddress = '0x801121771320B312620082CfDE014d9b3518e8bE';
@@ -126,6 +127,7 @@ function App() {
 
   const startGame = async () => {
     try {
+      setIsLoading(true);
       const contract = new ethers.Contract(contractAddress, abi, window.signer);
       const transaction = await contract.startGame();
   
@@ -149,10 +151,14 @@ function App() {
   
       // Set error state for displaying custom error message (optional)
       setError(contractErrorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
+
   const createGame = async () => {
     try {
+      setIsLoading(true);
       const contract = new ethers.Contract(contractAddress, abi, window.signer);
       const transaction = await contract.createGame();
       
@@ -176,11 +182,14 @@ function App() {
   
       // Set error state for displaying custom error message (optional)
       setError(contractErrorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
   
   const endGame = async () => {
     try {
+      setIsLoading(true);
       const contract = new ethers.Contract(contractAddress, abi, window.signer);
       const transaction = await contract.endGame();
   
@@ -204,11 +213,15 @@ function App() {
   
       // Set error state for displaying custom error message (optional)
       setError(contractErrorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const registerForGame = async () => {
     try {
+      setIsLoading(true);
+  
       // Check if MetaMask is installed and available
       if (!window.ethereum) {
         throw new Error('MetaMask not found. Please install MetaMask to interact with the application.');
@@ -221,11 +234,11 @@ function App() {
   
       // Specify the amount of 1 ETH in Wei (1 ETH = 10^18 Wei)
       const amountToSend = '100000000000000000';
-
+  
       const gasLimit = 200000;
   
       // Trigger MetaMask transaction with specified amount
-      const transaction = await contract.registerForGame({ value: amountToSend, gasLimit});
+      const transaction = await contract.registerForGame({ value: amountToSend, gasLimit });
   
       // Wait for the transaction to be mined
       await transaction.wait();
@@ -239,7 +252,7 @@ function App() {
       // Display success notification
       toast.success('Registered successfully');
     } catch (error) {
-      console.error('Error registering the game:', error);
+      console.error('Error registering for the game:', error);
   
       // Extract and display contract error message
       const contractErrorMessage =
@@ -249,8 +262,11 @@ function App() {
   
       // Set error state for displaying custom error message (optional)
       setError(contractErrorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
+  
   interface DashboardItemProps {
     title: string;
     value: string | number;
@@ -277,6 +293,7 @@ function App() {
         </button>
       </div>
     )}
+    {isLoading && <Spinner />} {/* Render the spinner if loading */}
     {addresses.length > 0 && (
       <div>
         <p className="mt-3">Connected address: {addresses[0]}</p>
