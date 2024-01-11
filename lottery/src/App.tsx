@@ -4,10 +4,6 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 
-
-
-
-
 declare global {
   interface Window {
     ethereum?: any;
