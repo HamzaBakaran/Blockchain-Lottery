@@ -42,13 +42,15 @@ function App() {
     try {
       const contract = new ethers.Contract(contractAddress, abi, window.signer);
   
-      // Fetch data from the contract
-      const admin = await contract.admin();
-      const gameCreated = await contract.gameCreated();
-      const gameStarted = await contract.gameStarted();
-      const gameEnded = await contract.gameEnded();
-      const totalPlayers = await contract.totalPlayers();
-      const totalAmountPaid = await contract.totalAmountPaid();
+      // Fetch basic contract data
+      const [admin, gameCreated, gameStarted, gameEnded, totalPlayers, totalAmountPaid] = await Promise.all([
+        contract.admin(),
+        contract.gameCreated(),
+        contract.gameStarted(),
+        contract.gameEnded(),
+        contract.totalPlayers(),
+        contract.totalAmountPaid(),
+      ]);
   
       // Log fetched data
       console.log('Fetched Contract Data:', {
@@ -57,7 +59,7 @@ function App() {
         gameStarted,
         gameEnded,
         totalPlayers,
-        totalAmountPaid,
+        totalAmountPaid: totalAmountPaid.toString(), // Keep totalAmountPaid as BigNumber
       });
   
       // Set contract data in the React state
@@ -66,13 +68,13 @@ function App() {
         gameCreated,
         gameStarted,
         gameEnded,
-        totalPlayers,
-        totalAmountPaid,
+        totalPlayers: Number(totalPlayers),
+        totalAmountPaid: totalAmountPaid.toString(), // Keep totalAmountPaid as BigNumber
       });
   
       // Fetch player addresses from the contract
       const addresses = await contract.playerAddresses();
-      
+  
       // Log player addresses
       console.log('Player Addresses:', addresses);
   
@@ -82,18 +84,18 @@ function App() {
       // Fetch detailed player data
       const playersData: { [address: string]: Player } = {};
       for (const address of addresses) {
-        const playerData = await contract.players(address);
+        const [registered, amountPaid] = await contract.players(address);
   
         // Log individual player data
-        console.log(`Player Data for ${address}:`, playerData);
+        console.log(`Player Data for ${address}:`, { registered, amountPaid: amountPaid.toString() });
   
         // Set player data in the React state
         playersData[address] = {
-          registered: playerData.registered,
-          amountPaid: playerData.amountPaid.toNumber(),
+          registered,
+          amountPaid: amountPaid.toString(), // Keep amountPaid as BigNumber
         };
       }
-      
+  
       // Log the final playersData
       console.log('All Players Data:', playersData);
   
@@ -105,6 +107,7 @@ function App() {
       // Handle the error
     }
   };
+  
 
   const connect = async () => {
     if (window.ethereum) {
@@ -248,6 +251,19 @@ function App() {
       setError(contractErrorMessage);
     }
   };
+  interface DashboardItemProps {
+    title: string;
+    value: string | number;
+  }
+
+  const DashboardItem: React.FC<DashboardItemProps> = ({ title, value }) => (
+    <div className="card mb-3">
+      <div className="card-body">
+        <h5 className="card-title">{title}</h5>
+        <p className="card-text">{value}</p>
+      </div>
+    </div>
+  );
   
   
   
@@ -267,35 +283,13 @@ function App() {
         {isAdmin ? (
           <div className="mt-3">
             <h4>Admin Dashboard</h4>
-            <div className="mb-3">
-              <p>
-                <strong>Admin:</strong> {gameData.admin}
-              </p>
-              <p>
-                <strong>Game Created:</strong> {String(gameData.gameCreated)}
-              </p>
-              <p>
-                <strong>Game Started:</strong> {String(gameData.gameStarted)}
-              </p>
-              <p>
-                <strong>Game Ended:</strong> {String(gameData.gameEnded)}
-              </p>
-            </div>
-
-            {addresses.map((address, index) => (
-              <div key={index} className="mb-3">
-                <p>
-                  <strong>Player:</strong> {address}
-                </p>
-                <p>
-                  <strong>Registered:</strong> {String(players[address]?.registered)}
-                </p>
-                <p>
-                  <strong>Amount Paid:</strong> {players[address]?.amountPaid} ETH
-                </p>
-              </div>
-            ))}
-                        <div>
+            <DashboardItem title="Admin" value={gameData.admin} />
+            <DashboardItem title="Game Created" value={String(gameData.gameCreated)} />
+            <DashboardItem title="Game Started" value={String(gameData.gameStarted)} />
+            <DashboardItem title="Game Ended" value={String(gameData.gameEnded)} />
+            <DashboardItem title="Total Players" value={gameData.totalPlayers} />
+            <DashboardItem title="Total Amount Paid" value={`${gameData.totalAmountPaid} Wei`} />
+            <div className="mt-4">
               <button className="btn btn-success mr-2" onClick={createGame}>
                 Create Game
               </button>
@@ -307,27 +301,16 @@ function App() {
               </button>
             </div>
           </div>
-          
         ) : (
           <div className="mt-3">
             <h4>Player Dashboard</h4>
-            <div className="mb-3">
-              <p>
-                <strong>Total Players:</strong> {gameData.totalPlayers}
-              </p>
-              <p>
-                <strong>Total Amount Paid:</strong> {gameData.totalAmountPaid} ETH
-              </p>
-              <p>
-                <strong>Game Started:</strong> {String(gameData.gameStarted)}
-              </p>
-              <p>
-                <strong>Game Ended:</strong> {String(gameData.gameEnded)}
-              </p>
-              <button className="btn btn-primary" onClick={registerForGame}>
-                Register for Game
-              </button>
-            </div>
+            <DashboardItem title="Total Players" value={gameData.totalPlayers} />
+            <DashboardItem title="Possible Win Amount" value={`${gameData.totalAmountPaid / 2} Wei`} />
+            <DashboardItem title="Game Started" value={String(gameData.gameStarted)} />
+            <DashboardItem title="Game Ended" value={String(gameData.gameEnded)} />
+            <button className="btn btn-primary mt-3" onClick={registerForGame}>
+              Register for Game
+            </button>
           </div>
         )}
       </div>
